@@ -7,10 +7,10 @@ public class PlayerCombat : MonoBehaviour
     public Animator animator;
     public Transform attackPoint;
     public float attackRange = 0.5f;
-    public LayerMask enemyLayers;
+    public LayerMask enemyLayer;
 
     public int attackDamage = 40;
-    public float attackRate = 3f;
+    public float attackRate = 2f;
     float nextAttackTime = 0f;
  
     // Update is called once per frame
@@ -24,22 +24,31 @@ public class PlayerCombat : MonoBehaviour
                 nextAttackTime = Time.time + 1f / attackRate;
             }
         }
+    }
 
-        void Attack()
+    void Attack()
+    {
+        //Attack Animation
+        animator.SetTrigger("Player_attack");
+
+        //Detect enemies in range of attack
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
+
+        //Damage
+        foreach (Collider2D enemy in hitEnemies)
         {
-            //Attack Animation
-            animator.SetTrigger("Player_attack");
-
-            //Detect enemies in range of attack
-            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
-
-            //Damage
-            foreach (Collider2D enemy in hitEnemies)
-            {
-                enemy.GetComponent<Enemy>().TakeDamage(attackDamage);
-                Debug.Log(enemy.name + " damaged!");
-            }
-
+            enemy.GetComponent<Enemy>().TakeDamage(attackDamage);
+            Debug.Log(enemy.name + " damaged!");
         }
     }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (attackPoint == null)
+            return;
+
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
+    }
 }
+
+
