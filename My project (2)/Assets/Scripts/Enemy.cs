@@ -4,27 +4,28 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    public Animator animator;
-
+    #region Public Variables
     int currentHealth;
     public int maxHealth = 100;
+    public Animator animator;
     public float moveSpeed;
-
-    public Transform rayCast;
-    public LayerMask raycastMask;
-    public float rayCastLength;
     public float attackDistance; //minimum distance for attackInit
-    
     public float timer; //cooldown between attacks
-    private RaycastHit2D hit;
-    private GameObject target;
+    public Transform leftLimit;
+    public Transform rightLimit;
+    [HideInInspector] public Transform target;
+    [HideInInspector] public bool inRange;
+    public GameObject hotZone;
+    public GameObject triggerArea;
+    #endregion
+
+    #region Private Variables
     private float distance; //storing the distance between enemy and player
     private bool attackMode;
-
-    private bool inRange;
     private bool cooling;
     private float intTimer;
-    
+    #endregion
+
     void Start()
     {
         currentHealth = maxHealth;
@@ -32,37 +33,24 @@ public class Enemy : MonoBehaviour
 
     private void Awake()
     {
+        SelectTarget(); //selects the left or rigth limit
         intTimer = timer;
         animator = GetComponent<Animator>();
     }
 
     void Update()
     {
-        if (inRange)
-        {
-            hit = Physics2D.Raycast(rayCast.position, Vector2.left, rayCastLength, raycastMask);
-            RaycastDebugger();
+        if (!attackMode){
+            Move();
         }
 
-        //When player is detected
-        if (hit.collider != null)
-        {
-            Debug.Log("I see player");
+        if (!InsideofLimits() && !inRange && !animator.GetCurrentAnimatorStateInfo(0).IsName("Goblin_attack")){
+            SelectTarget();
+        }
+
+        if (inRange){
             EnemyLogic();
         }
-        else if (hit.collider == null)
-        {
-            inRange = false;
-        }
-
-
-        if (inRange == false)
-        {
-            Debug.Log("I don't see player");
-            animator.SetBool("canWalk", false);
-            StopAttack();
-        }
-
     }
 
     public void TakeDamage(int damage)
@@ -93,34 +81,21 @@ public class Enemy : MonoBehaviour
         GetComponent<Rigidbody2D>().constraints = RigidbodyConstraints2D.FreezePositionY;
         GetComponent<Collider2D>().enabled = false;
     }
-    public void OnTriggerEnter2D(Collider2D trig)
-    {
-     
-        if (trig.gameObject.tag == "Player")
-        {
-            target = trig.gameObject;
-            inRange = true;
-           
-        }
-    }
 
     //DEALING ATTACK----------------------------------------------
    
 
     void EnemyLogic()
     {
-        distance = Vector2.Distance(transform.position, target.transform.position);
+        distance = Vector2.Distance(transform.position, target.position);
 
         if (distance > attackDistance)
         {
-            Move();
             StopAttack();
-            
         }
         else if (attackDistance >= distance && cooling == false)
         {
             Attack();
-
         }
 
         if (cooling)
@@ -135,7 +110,7 @@ public class Enemy : MonoBehaviour
         animator.SetBool("canWalk", true);
         if (!animator.GetCurrentAnimatorStateInfo(0).IsName("enemyAttack"))
         {
-            Vector2 targetPosition = new Vector2(target.transform.position.x, transform.position.y);
+            Vector2 targetPosition = new Vector2(target.position.x, transform.position.y);
             transform.position = Vector2.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
         }
     }
@@ -167,23 +142,47 @@ public class Enemy : MonoBehaviour
         animator.SetBool("enemyAttack", false);
     }
 
-    void RaycastDebugger()
-    {
-        if (distance > attackDistance)
-        {
-            Debug.DrawRay(rayCast.position, Vector2.left * rayCastLength, Color.red);
-        }
-        else if (attackDistance > distance)
-        {
-            Debug.DrawRay(rayCast.position, Vector2.left * rayCastLength, Color.green);
-        }
-    }
-
     public void TriggerCooling()
     {
         cooling = true;
     }
 
+
+    private bool InsideofLimits()
+    {
+        return transform.position.x > leftLimit.position.x && transform.position.x < rightLimit.position.x; 
+    }
+
+    public void SelectTarget()
+    {
+        float distanceToLeft = Vector2.Distance(transform.position, leftLimit.position);
+        float distanceToRight = Vector2.Distance(transform.position, rightLimit.position);
+
+        if (distanceToLeft > distanceToRight)
+        {
+            target = leftLimit;
+        }
+        else 
+        {
+            target = rightLimit;
+        }
+
+        Flip();
+    }
+    public void Flip()
+    {
+        Vector3 rotation = transform.eulerAngles;
+        if (transform.position.x > target.position.x)
+        {
+            rotation.y = 180f;
+        }
+        else
+        {
+            rotation.y = 0f;
+        }
+
+        transform.eulerAngles = rotation;
+    }
     //TAKING DAMAGE AND DEATH -------------------------------------
  
 }

@@ -15,7 +15,6 @@ public class PlayerMovement : MonoBehaviour
         anim = GetComponent<Animator>();
     }
 
-
     /*/////////////////////////////////////UPDATE///////////////////////////////////////////*/
     private void Update()
     {
